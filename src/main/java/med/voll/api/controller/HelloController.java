@@ -7,10 +7,7 @@ import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.http.HttpHeaders;
 
 
@@ -60,6 +57,34 @@ public class HelloController {
         return cloudStorageManagerService.downloadObject(bucketName, objectName, filePath);
     }
 
+    @RequestMapping("/downloadFromListObjects")
+    public ResponseEntity<Resource>  downloadFromListObjects(@RequestBody ExampleRequest request) throws IOException {
+
+        try {
+            Path zipFilePath = cloudStorageManagerService.downloadFromListObjects(request.getBucketName(), request.getObjectNames());
+            byte[] zipFileBytes = Files.readAllBytes(zipFilePath);
+            Files.delete(zipFilePath);
+
+            // Create a ByteArrayResource to wrap the byte array
+            ByteArrayResource resource = new ByteArrayResource(zipFileBytes);
+
+            // Set the response headers
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+            headers.setContentDispositionFormData("attachment", request.getBucketName() + ".zip");
+
+            // Return the zip file as a resource in the response entity
+            return ResponseEntity.ok()
+                    .headers(headers)
+                    .contentLength(zipFileBytes.length)
+                    .body(resource);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body(null);
+        }
+    }
+
     /*@RequestMapping("/downloadFolder")
     public String downloadFolder(@RequestParam(name = "bucketName") String bucketName,
                                   @RequestParam(name = "folderName") String folderName) throws IOException {
@@ -91,7 +116,7 @@ public class HelloController {
         }
     }
 
-    @GetMapping(path = "/downloadFolder", produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
+    /*@GetMapping(path = "/downloadFolder", produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
     public ResponseEntity<Resource> downloadFolder(@RequestParam(name = "bucketName") String bucketName,
                                                    @RequestParam(name = "folderName") String folderName) {
 
@@ -118,5 +143,5 @@ public class HelloController {
             e.printStackTrace();
             return ResponseEntity.internalServerError().body(null);
         }
-    }
+    }*/
 }
