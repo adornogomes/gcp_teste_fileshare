@@ -105,8 +105,14 @@ public class CloudStorageManagerService {
                 + " to "
                 + destFilePath);
 
-        Blob blob = storage.get(BlobId.of(bucketName, objectName));
-        blob.downloadTo(Paths.get(destFilePath + "/"+ objectName));
+        //Blob blob = storage.get(BlobId.of(bucketName, objectName));
+        Blob blob = storage.get(bucketName, objectName);
+        String[] parts = blob.getName().split("/");
+        String fileName = parts[parts.length - 1];
+        //System.out.println("parts[0]: " + parts[0]);
+        //System.out.println("parts[1]: " + parts[1]);
+        blob.downloadTo(Paths.get(destFilePath + "/"+ fileName));
+        //blob.downloadTo(Paths.get(destFilePath + "/"+ objectName));
 
         return "Downloaded object "
                         + objectName
@@ -116,7 +122,69 @@ public class CloudStorageManagerService {
                         + destFilePath;
     }
 
-    public Path downloadFolder(String bucketName, String folderName) throws IOException {
+    public String downloadFromList(String bucketName, List<String> objectNames) throws IOException {
+
+        Storage storage = StorageOptions.newBuilder().setProjectId(this.projectId).build().getService();
+        System.out.println(objectNames.size());
+
+        for (String objectName : objectNames) {
+            // If objectName contains a slash, it indicates it's inside a folder
+            //String[] parts = objectName.split("/");
+            Blob blob = storage.get(bucketName, objectName);
+
+            if(blob.isDirectory()){
+                System.out.println("diretorio: " + blob.getName());
+            } else {
+
+                System.out.println("arquivo: " + blob.getName());
+            }
+
+            /*String[] parts = blob.getName().split("/");
+            String fileName = parts[parts.length - 1];
+            System.out.println("ObjectName: " + objectName);
+            System.out.println("FileName: " + fileName);
+            blob.downloadTo(Paths.get(tempDirectoryPath + "/" + fileName));*/
+        }
+        return "Downloaded object daniel";
+
+    }
+
+    public Path downloadFromListObjects(String bucketName, List<String> objectNames) throws IOException {
+
+        String destinationDirectory = tempDirectoryPath + "/" + bucketName;
+        File tempDir = new File(tempDirectoryPath, bucketName);
+        tempDir.mkdirs();
+
+        Storage storage = StorageOptions.newBuilder().setProjectId(this.projectId).build().getService();
+
+        for (String objectName : objectNames) {
+            Blob blob = storage.get(bucketName, objectName);
+
+            if(blob.getName().endsWith("/")) {
+
+                downloadFolder(storage, bucketName, objectName, destinationDirectory);
+
+            } else {
+
+                String[] parts = blob.getName().split("/");
+                String fileName = parts[parts.length - 1];
+                blob.downloadTo(Paths.get(destinationDirectory + "/" + fileName));
+
+            }
+
+        }
+
+        File zipDirPath = new File(tempDirectoryPath, bucketName);
+        zipDirectory(String.valueOf(zipDirPath), tempDirectoryPath + "/" + bucketName + ".zip");
+        deleteDirectory(zipDirPath);
+
+
+        return Paths.get(tempDirectoryPath + "/" + bucketName + ".zip");
+
+    }
+
+    /*public Path downloadFolder(String bucketName, String folderName) throws IOException {
+
         Storage storage = StorageOptions.newBuilder().setProjectId(this.projectId).build().getService();
 
         // List blobs in the specified folder
@@ -139,7 +207,25 @@ public class CloudStorageManagerService {
 
 
         return Paths.get(tempDirectoryPath + "/" + folderName + ".zip");
+    }*/
+    public void downloadFolder(Storage storage, String bucketName, String folderName, String destinationDirectory) throws IOException {
+
+        //Storage storage = StorageOptions.newBuilder().setProjectId(this.projectId).build().getService();
+
+        // List blobs in the specified folder
+        //storage.list(bucketName, Storage.BlobListOption.prefix(folderName + "/"))
+        storage.list(bucketName, Storage.BlobListOption.prefix(folderName))
+                .iterateAll()
+                .forEach(blob -> {
+                    try {
+                        // Download each blob in the folder
+                        downloadBlob(storage, blob, destinationDirectory);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                });
     }
+
 
     private void downloadBlob(Storage storage, Blob blob, String destinationDirectory) throws IOException {
         //String path = destinationDirectory;
