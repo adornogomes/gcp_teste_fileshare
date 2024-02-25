@@ -49,6 +49,13 @@ public class HelloController {
         return cloudStorageManagerService.uploadObject(bucketName, objectName, filePath);
     }
 
+    @GetMapping("/searchFile")
+    public List<String> searchFileInBucket(@RequestParam String bucketName, @RequestParam String fileName) {
+
+        return cloudStorageManagerService.searchFile(bucketName, fileName);
+
+    }
+
     @RequestMapping("/downloadObject")
     public String downloadObject(@RequestParam(name = "bucketName") String bucketName,
                                 @RequestParam(name = "objectName") String objectName,
