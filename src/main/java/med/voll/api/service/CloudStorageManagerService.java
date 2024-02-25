@@ -68,6 +68,21 @@ public class CloudStorageManagerService {
         return result;
     }
 
+    public List<String> searchFile(String bucketName, String fileName) {
+        List<String> result = new ArrayList<String>();
+
+        Storage storage = StorageOptions.newBuilder().setProjectId(this.projectId).build().getService();
+
+        Page<Blob> blobs = storage.list(bucketName);
+
+        for (Blob blob : blobs.iterateAll()) {
+            if (blob.getName().contains(fileName)) {
+                result.add(blob.getName()); }
+        }
+
+        return result;
+    }
+
     public String uploadObject(String bucketName, String objectName, String filePath) throws IOException {
         Storage storage = StorageOptions.newBuilder().setProjectId(this.projectId).build().getService();
         BlobId blobId = BlobId.of(bucketName, objectName);
